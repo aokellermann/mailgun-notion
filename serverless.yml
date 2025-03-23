@@ -1,0 +1,24 @@
+# "org" ensures this Service is used with the correct Serverless Framework Access Key.
+org: ${env:SLS_ORG}
+# "app" enables Serverless Framework Dashboard features and sharing them with other Services.
+app: mailgun-notion
+# "service" is the name of this project. This will also be added to your AWS resource names.
+service: mailgun-notion
+
+provider:
+  name: aws
+  runtime: nodejs20.x
+  environment:
+    NOTION_API_KEY: ${env:NOTION_API_KEY}
+    NOTION_DATABASE_ID: ${env:NOTION_DATABASE_ID}
+
+functions:
+  api:
+    handler: handler.handler
+    events:
+      - httpApi:
+          path: /mailgun-webhook
+          method: post
+
+plugins:
+  - serverless-offline
