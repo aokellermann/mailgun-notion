@@ -9,11 +9,8 @@ const dotenv = require("dotenv");
 dotenv.config();
 
 const app = express();
-
-// Parse JSON payloads
-app.use(express.json());
-// Parse URL-encoded bodies
-app.use(express.urlencoded({ extended: true }));
+const multer  = require('multer')
+const upload = multer()
 
 // Initialize Notion client
 const notion = new Client({
@@ -68,12 +65,14 @@ function convertMarkdownToNotionBlocks(markdown) {
 }
 
 // Mailgun webhook endpoint
-app.post("/mailgun-webhook", async (req, res) => {
+app.post("/mailgun-webhook", upload.any(), async (req, res) => {
   try {
-    console.log("Received webhook from Mailgun:", JSON.stringify(req.body));
+    let body = req.body;
+
+    console.log("Received webhook from Mailgun:", JSON.stringify(body));
     
     // Extract email data from Mailgun payload
-    const { subject, "body-plain": bodyPlain } = req.body;
+    const { subject, "body-plain": bodyPlain } = body;
     
     if (!subject) {
       return res.status(400).json({ error: "Missing email subject" });
