@@ -1,6 +1,7 @@
 const serverless = require("serverless-http");
 const express = require("express");
 const { Client } = require("@notionhq/client");
+const { Anthropic } = require("@anthropic-ai/sdk");
 const dotenv = require("dotenv");
 
 // Load environment variables
@@ -18,8 +19,29 @@ const notion = new Client({
   auth: process.env.NOTION_API_KEY,
 });
 
+// Initialize Anthropic client
+const anthropic = new Anthropic();
+
 // The ID of the database where email content will be saved
 const databaseId = process.env.NOTION_DATABASE_ID;
+
+// Function to summarize email content using Claude
+async function summarizeEmail(content) {
+  try {
+    const message = await anthropic.messages.create({
+      model: "claude-3-7-sonnet-latest",
+      max_tokens: 512,
+      messages: [{
+        role: "user",
+        content: `Please provide a concise summary of this email in the format of an action item with all relevant information and/or links to complete the task:\n\n${content}`
+      }]
+    });
+    return message.content[0].text;
+  } catch (error) {
+    console.error("Error summarizing email:", error);
+    return "Failed to generate summary";
+  }
+}
 
 // Mailgun webhook endpoint
 app.post("/mailgun-webhook", async (req, res) => {
@@ -27,7 +49,7 @@ app.post("/mailgun-webhook", async (req, res) => {
     console.log("Received webhook from Mailgun:", JSON.stringify(req.body));
     
     // Extract email data from Mailgun payload
-    const { subject, "body-plain": bodyPlain, "body-html": bodyHtml } = req.body;
+    const { subject, "body-plain": bodyPlain } = req.body;
     
     if (!subject) {
       return res.status(400).json({ error: "Missing email subject" });
@@ -35,6 +57,9 @@ app.post("/mailgun-webhook", async (req, res) => {
     
     // Use plain text content or fallback to empty string
     const content = bodyPlain || "";
+    
+    // Generate summary using Claude
+    const summary = await summarizeEmail(content);
     
     // Create a new page in Notion database
     const response = await notion.pages.create({
@@ -52,7 +77,7 @@ app.post("/mailgun-webhook", async (req, res) => {
           ],
         },
       },
-      // Add the email content to the page
+      // Add the email summary to the page
       children: [
         {
           object: "block",
@@ -61,7 +86,7 @@ app.post("/mailgun-webhook", async (req, res) => {
             rich_text: [
               {
                 text: {
-                  content: content,
+                  content: summary,
                 },
               },
             ],

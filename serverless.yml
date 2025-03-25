@@ -11,6 +11,7 @@ provider:
   environment:
     NOTION_API_KEY: ${env:NOTION_API_KEY}
     NOTION_DATABASE_ID: ${env:NOTION_DATABASE_ID}
+    ANTHROPIC_API_KEY: ${env:ANTHROPIC_API_KEY}
 
 functions:
   api:
