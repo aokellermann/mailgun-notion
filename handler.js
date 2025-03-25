@@ -2,6 +2,7 @@ const serverless = require("serverless-http");
 const express = require("express");
 const { Client } = require("@notionhq/client");
 const { Anthropic } = require("@anthropic-ai/sdk");
+const { markdownToBlocks } = require("@tryfabric/martian");
 const dotenv = require("dotenv");
 
 // Load environment variables
@@ -43,6 +44,29 @@ async function summarizeEmail(content) {
   }
 }
 
+// Function to convert markdown to Notion blocks
+function convertMarkdownToNotionBlocks(markdown) {
+  try {
+    return markdownToBlocks(markdown);
+  } catch (error) {
+    console.error("Error converting markdown to Notion blocks:", error);
+    // Fallback to a simple paragraph block with the raw markdown
+    return [{
+      object: "block",
+      type: "paragraph",
+      paragraph: {
+        rich_text: [
+          {
+            text: {
+              content: markdown,
+            },
+          },
+        ],
+      },
+    }];
+  }
+}
+
 // Mailgun webhook endpoint
 app.post("/mailgun-webhook", async (req, res) => {
   try {
@@ -61,6 +85,9 @@ app.post("/mailgun-webhook", async (req, res) => {
     // Generate summary using Claude
     const summary = await summarizeEmail(content);
     
+    // Convert markdown summary to Notion blocks
+    const notionBlocks = convertMarkdownToNotionBlocks(summary);
+    
     // Create a new page in Notion database
     const response = await notion.pages.create({
       parent: {
@@ -77,22 +104,8 @@ app.post("/mailgun-webhook", async (req, res) => {
           ],
         },
       },
-      // Add the email summary to the page
-      children: [
-        {
-          object: "block",
-          type: "paragraph",
-          paragraph: {
-            rich_text: [
-              {
-                text: {
-                  content: summary,
-                },
-              },
-            ],
-          },
-        },
-      ],
+      // Add the converted Notion blocks to the page
+      children: notionBlocks,
     });
     
     console.log("Successfully created Notion page:", response.id);
