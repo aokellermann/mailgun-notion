@@ -1,6 +1,6 @@
 # Mailgun to Notion Integration
 
-This service includes an integration between Mailgun and Notion. When an email is forwarded from Mailgun to the webhook endpoint, it automatically creates a new page in a specified Notion database.
+This service includes an integration between Mailgun, Notion, and Claude. When an email is forwarded from Mailgun to the webhook endpoint, it automatically creates a new page in a specified Notion database with a summary of the email.
 
 ## Usage
 
@@ -32,6 +32,7 @@ sls deploy
      SLS_ORG=your_serverless_org_here
      NOTION_API_KEY=your_notion_api_key_here
      NOTION_DATABASE_ID=your_notion_database_id_here
+     ANTHROPIC_API_KEY=your_anthropic_key_here
      ```
 
 3. **Mailgun Setup**:
